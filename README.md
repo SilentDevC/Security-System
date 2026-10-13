@@ -5,7 +5,7 @@ A Verilog HDL description of a security system that provides coded access to a s
 ![GitHub Language](https://img.shields.io/github/languages/top/SilentDevC/Security-System?style=for-the-badge&color=orange)
 
 ## 📝 Description
-This project presents a digital security system implemented in Verilog HDL. The system is designed to provide controlled access to a secured area, requiring users to enter a specific code to gain entry. It serves as a foundational example for embedded security logic using hardware description languages, ideal for learning digital design, FPGA development, and basic access control mechanisms.
+This project presents a digital security system implemented in Verilog HDL. The system is designed to provide controlled access to a secured area, requiring users to enter a specific code to gain entry. It serves as a foundational example for embedded security logic using hardware description languages, is an ideal example for learning digital design, FPGA development, and basic access control mechanisms.
 
 ## 📚 Table of Contents
 *   [🌟 Features](#-features)
@@ -14,12 +14,9 @@ This project presents a digital security system implemented in Verilog HDL. The 
 *   [💡 Usage](#-usage)
 *   [🛠️ How to Use](#%EF%B8%8F-how-to-use)
 *   [📂 Project Structure](#-project-structure)
-*   [⛔ API Reference](#-api-reference)
 *   [🤝 Contributing](#-contributing)
 *   [📜 License](#-license)
-*   [🔗 Important Links](#-important-links)
-*   [✅ Footer](#%E2%9C%85-footer)
-
+    
 ## 🌟 Features
 Based on the project description, this Verilog security system is designed with the following core features:
 *   **Coded Access Control**: Implements logic to verify an entered code against a predefined secure code.
@@ -63,44 +60,45 @@ Assuming `secsys.v` contains the top-level module, you would create a testbench 
 
 1.  **Create a Testbench**: Write a Verilog testbench file (`secsys_tb.v`) to instantiate `secsys.v` and apply input stimuli.
     ```verilog
-    // Example of a basic testbench structure (you'll need to write the actual content)
-    module secsys_tb;
-        // Declare signals for module inputs/outputs
-        reg clk;
-        reg rst;
-        reg [3:0] entered_code; // Example 4-bit code input
-        reg enter_button;
-        wire access_granted;
-        wire error_indicator;
+    // Example of a basic testbench structure (this is the actual part of the testbench from the project )
+    module testsecuresys;
+    reg [9:0] key;
+    reg enter;
+    reg clk;
+    reg res;
+    reg [3:0] dip1, dip2, dip3, dip4;
+    wire sysout;
 
-        // Instantiate the security system module
-        secsys uut (
-            .clk(clk),
-            .rst(rst),
-            .entered_code(entered_code),
-            .enter_button(enter_button),
-            .access_granted(access_granted),
-            .error_indicator(error_indicator)
-        );
+    secsys test (.key(key), .enter(enter), .clk(clk), .res(res),
+                 .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4),
+                 .sysout(sysout));
 
-        // Clock generation
-        always #5 clk = ~clk;
+    localparam clockcycle = 10 ; 
+    always #(clockcycle/2) clk =~clk; 
 
-        // Initial stimulus
-        initial begin
-            clk = 0;
-            rst = 1; #10 rst = 0; // Assert and de-assert reset
-            
-            // Apply input sequence to test the system
-            entered_code = 4'b0000; enter_button = 0; #10; // Idle
-            
-            // Example: Try to enter a code (e.g., 1010 for correct)
-            entered_code = 4'b1010; enter_button = 1; #10; enter_button = 0; #10; 
-            
-            // Observe access_granted and error_indicator
-            
-            $finish;
-        end
+    initial begin
+
+	#(clockcycle*3) res<=1;
+  	#(clockcycle*3) res<=0;clk<=0;
+
+        // set DIP switches first (secret code = 4,5,6,7)
+        dip1 = 4'h4;
+        dip2 = 4'h5;
+        dip3 = 4'h6;
+        dip4 = 4'h7;
+
+        // reset
+        res = 0;
+        #20 res = 1;
+	
+        // enter digit 1 = 4
+        #50 key = 10'b0000010000; // key[4]
+        enter = 1;
+        #5 enter = 0;
+        //#10 key = 0;
+
+    ...
+    
     endmodule
     ```
 2.  **Compile with Icarus Verilog**:
@@ -141,9 +139,6 @@ Security-System/
 *   `LICENSE`: Contains the MIT License details.
 *   `secsys.v`: The core Verilog HDL source file describing the security system logic.
 
-## ⛔ API Reference
-This project is a hardware description in Verilog HDL and does not expose a software-style API. Its interface is defined by the input and output ports of the `secsys` Verilog module. The specific port definitions would be found within the `secsys.v` file.
-
 ## 🤝 Contributing
 Contributions are welcome! If you have suggestions for improvements, feature additions, or bug fixes, please feel free to:
 1.  **Fork** this repository.
@@ -154,15 +149,7 @@ Contributions are welcome! If you have suggestions for improvements, feature add
 
 ## 📜 License
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
-
-## 🔗 Important Links
-*   **GitHub Repository**: [https://github.com/SilentDevC/Security-System](https://github.com/SilentDevC/Security-System)
-
-## ✅ Footer
-Project: [Security-System](https://github.com/SilentDevC/Security-System) | Developed by [SilentDevC](https://github.com/SilentDevC) (inferred author from repo URL).
-
 Enjoying this project? Give it a ⭐ Star, 🍴 Fork it, or 📥 Open an Issue if you have questions or suggestions!
-
 
 ---
 **<p align="center">Generated by [ReadmeCodeGen](https://www.readmecodegen.com/)</p>**
