@@ -1,5 +1,5 @@
 # Security-System 🔒
-A Verilog HDL description of a security system that provides coded access to a secured area.
+A Verilog HDL description of a security system that provides coded access to a secured area. The provided module needs debugging and polishing to be completed.
 
 ![GitHub License](https://img.shields.io/github/license/SilentDevC/Security-System?style=for-the-badge&color=blue)
 ![GitHub Language](https://img.shields.io/github/languages/top/SilentDevC/Security-System?style=for-the-badge&color=orange)
