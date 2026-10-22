@@ -159,7 +159,7 @@ To interact with and utilize the `secsys.v` module, you would typically follow t
         // enter digits...
     end
     endmodule
-
+2. Run Simulation using the ModelSIM GUI and view the resulting wavefrom.
 
 ### 2. Synthesis (for FPGA)
 
