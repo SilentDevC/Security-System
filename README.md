@@ -158,9 +158,9 @@ To interact with and utilize the `secsys.v` module, you would typically follow t
 
         // enter digits...
     end
-endmodule
-```
-```
+    endmodule
+
+
 ### 2. Synthesis (for FPGA)
 
 1.  **Add `secsys.v` to your FPGA Project**: Create a new project in your preferred FPGA IDE (e.g., Vivado, Quartus).
