@@ -150,7 +150,7 @@ module CodeSelection (
 endmodule
 
 
-module secsys(
+module secsyspr(
     input [9:0] key,
     input enter,
     input clk , 
@@ -205,7 +205,7 @@ module secsys(
     assign sysout = regcout;
 endmodule
 
-module testsecuresys;
+module testsecsyspr;
     reg [9:0] key;
     reg enter;
     reg clk;
