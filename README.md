@@ -171,9 +171,10 @@ To interact with and utilize the `secsys.v` module, you would typically follow t
 6.  **Test Hardware**: Interact with the system on the hardware using physical inputs (e.g., buttons, switches) and observe outputs (e.g., LEDs, 7-segment displays).
 
 ## 📂 Project Structure
+||
 Security-System/
 ├── README.md
 ├── LICENSE
-└── secsys.v        ← all modules + testbench
+└── secsys.v   ← all modules + testbench
 
 MIT License. See [LICENSE](LICENSE) for details.
