@@ -177,5 +177,16 @@ Security-System/
 ├── LICENSE
 └── secsys.v   ← all modules + testbench
 ```
+
+## 🖥 Old Asynchronous Design 
+![security_system_block_diagram.svg](security_system_block_diagram.svg)
+
+## ⚙ New FSM based Synchronous design
+![code_lock_schematic_v4.svg](code_lock_schematic_v4.svg)
+
+**Both designs use the Code Selector logic circuit which holds the correct pattern**
+##
+![security_code_logic_circuit.svg](security_code_logic_circuit.svg)
+##
 ## ⚖ LICENSE  
 MIT License. See [LICENSE](LICENSE) for details.
