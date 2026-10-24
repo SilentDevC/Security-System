@@ -187,6 +187,6 @@ Security-System/
 **Both designs use the Code Selector logic circuit which holds the correct pattern**
 ##
 ![security_code_logic_circuit.svg](security_code_logic_circuit.svg)
-##
+
 ## ⚖ LICENSE  
 MIT License. See [LICENSE](LICENSE) for details.
