@@ -43,28 +43,11 @@ endmodule
 module fourbitPIPOshiftreg (
 input [3:0]in ,
 input clk,
-//input res,
 output reg [3:0]out
 );
-    always @( negedge clk) begin 
-	//if ( !res ) out <= 4'b1111;//the dip values are always 0-9 so they cant be 1111
+always @( posedge clk) begin 
         out <= in ; 
-    end 
-endmodule
-
-module four_bit_mag_comparator (
-input [3:0]op_a , op_b,
-output reg out
-);
-    integer i;
-    reg val;
-    always @( op_a, op_b ) begin 
-        val = 1'b1;
-        for ( i = 0 ; i < 4 ; i = i + 1)  begin 
-            val = val && (op_a[i] == op_b[i]); 
-        end 
-        out = val ;
-    end 
+end 
 endmodule
 
 module magcomp (
@@ -73,7 +56,6 @@ output comp_eq
 );
 assign comp_eq = (opa == opb);
 endmodule 
-
 
 module eight_bit_PISOshift_reg( 
     input [7:0]in,
@@ -93,40 +75,10 @@ module eight_bit_PISOshift_reg(
    end
 endmodule
 
-module oneshot(
-    input trig,
-    input clk,
-    input res,
-    output reg q,
-    output wire q_comp
-);
-parameter pulse_width = 5'h85;
-
-integer count = pulse_width;
-always @ ( posedge clk or negedge res ) begin  
-    if ( !res ) begin 
-        count = pulse_width;
-        q = 0;
-    end 
-    else begin 
-      if ( trig ) begin 
-        if ( count != 0 ) begin 
-            count = count - 1 ; 
-            q = 1'b1;
-         end 
-        else if ( count == 0 ) begin 
-        q = 1'b0;
-	count = pulse_width;
-	end 
-       end 
-      end
-end 
-assign q_comp = ~q;
-endmodule
-
 module CodeSelection (
-    input ShiftIn,      // serial input (tied to 0)
-    input clk,          // # key (enter) - also the shift clock
+    input ShiftIn,      
+    input clk,          
+    input sh_ld,
     input [3:0] dip1,   // DIP switch code digit 1
     input [3:0] dip2,   // DIP switch code digit 2
     input [3:0] dip3,   // DIP switch code digit 3
@@ -134,11 +86,15 @@ module CodeSelection (
     output [3:0] Bout   // BCD out to security code logic
 );
 
-    reg [3:0] sel = 4'b1000;
+    reg [3:0] sel;
 
     always @(posedge clk) begin
-        if (ShiftIn)        // first # press: load 0001
+        if (!sh_ld) begin
+          sel <= 4'b1000;
+        end                 
+        else begin
           sel <= {sel[2:0], ShiftIn};
+        end     
     end
 
     // AND + OR gate logic
@@ -146,11 +102,92 @@ module CodeSelection (
                   ({4{sel[1]}} & dip2) |
                   ({4{sel[2]}} & dip3) |
                   ({4{sel[3]}} & dip4);
+endmodule
+
+module FSM ( 
+    input clk ,reset ,
+    input x1,x2,x3,x4,
+    output y1,y2,y3,y4,y5,
+    output init
+);
+parameter S0 = 4'd0, S1 = 4'd1 , S2 = 4'd2 , S3 = 4'd3 , S4 = 4'd4 ,S5 = 4'd5 ;
+reg [3:0] state,next_state;
+
+always @(posedge clk or negedge reset) begin
+    if (!reset) state = S0;
+    else state = next_state;
+end
+
+always @(state or x1 or x2 or x3 or x4) begin
+    case (state)
+    S0 : next_state = S1;
+    S1 : begin        
+        if (!x1) next_state = S1 ;
+        else if (x1) next_state = S2 ;
+    end
+    S2 : begin 
+        if (!x2) next_state = S2 ;
+        else if (x2) next_state = S3;
+    end
+    S3 : begin 
+        if (x3) next_state = S5 ; 
+        else if (!x3) next_state = S4 ;
+    end
+    S4 : next_state = S2 ;
+    S5 : begin 
+        if (!x4) next_state = S2 ;
+        else if (x4) next_state = S0 ;
+    end
+    endcase
+end
+
+assign y1 = (state == S1) ;
+assign y2 = (state == S2) ;
+assign y3 = (state == S3) ; 
+assign y4 = (state == S4) ;
+assign y5 = (state == S5) ;
+
+//control signal of the initializing process
+assign init = (state == S1) ;
 
 endmodule
 
+module secsys_datapath (
+    input clk ,
+    input y1,y2,y3,y4,y5,
+    input [9:0]key,
+    input [3:0]dip1,
+    input [3:0]dip2,
+    input [3:0]dip3,
+    input [3:0]dip4, 
+    input enter,
+    input [3:0]PIPOouta,PIPOoutb,
+    input init,
+    output x1,x2,x3,x4,
+    output reg done,
+    output [3:0]codeselectorout
+);
+wire control;
+wire sh_ld;
+assign control = x3?y5:~y4;
+assign sh_ld = control & ~init;
 
-module secsyspr(
+CodeSelection selector (.ShiftIn(sh_ld), .clk(clk), .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4), .Bout(codeselectorout));
+
+assign x1 = enter;
+assign x2 = |key;
+magcomp localcomp(.opa(PIPOouta) , .opb(PIPOoutb) , .comp_eq(x3)) ;   
+eight_bit_PISOshift_reg regc ( .in(8'b00010000) ,.clk(clk) , .SH_LD(sh_ld) ,.out(x4));
+
+always @(posedge clk) begin
+    if (y5 && x4) begin
+      done <= 1'b1;
+    end
+end
+
+endmodule 
+
+module secsys(
     input [9:0] key,
     input enter,
     input clk , 
@@ -158,54 +195,31 @@ module secsyspr(
     input [3:0]dip1,
     input [3:0]dip2,
     input [3:0]dip3,
-    input [3:0]dip4, 
+    input [3:0]dip4,
     output sysout
-    );
+);
+
     wire [3:0]BCDout;
     wire [3:0]PIPOouta;
     wire [3:0]PIPOoutb;
-    wire timeouta; // clk1 
-    wire timeoutb; // clk2 
-    wire compout;
-    wire [3:0] bcd;
-    wire regcout;
-    wire orgate;
-    wire signal;
-    assign orgate = |key;
-    assign signal = orgate | enter;
-    wire qcompa;
-    wire qcompb;
+    wire [3:0]codeselectorout;
+    wire init;
+    reg done;
+    wire y1,y2,y3,y4,y5;
+    wire x1,x2,x3,x4;
 
-    
-    BCDencoder bcdenc (.in(key) , .BCDout(BCDout) );
-    
-    oneshot oshota( .trig(signal) , .clk(clk) 
-                      , .res(res) , .q(timeouta) , .q_comp(qcompa));
-                      
-    CodeSelection selector (.ShiftIn(compout) , .clk(enter) 
-                   , .dip1(dip1) ,.dip2(dip2) , 
-                    .dip3(dip3) ,.dip4(dip4) , .Bout(bcd) );
-                    
-    fourbitPIPOshiftreg rega( .clk(timeouta) , .in(BCDout) , 
-                                .out(PIPOouta));
-                                
-    fourbitPIPOshiftreg regb( .clk(timeouta) , .in(bcd) , 
-                                .out(PIPOoutb));
-                                
-   // four_bit_mag_comparator comp (.op_a(PIPOouta) 
-     //                       , .op_b(PIPOoutb) , .out(compout));
-     
-    magcomp localcomp(.opa(PIPOouta) , .opb(PIPOoutb) , .comp_eq(compout)) ;   
-
-    oneshot oshotb( .trig(timeouta) , .clk(clk) , 
-                                .res(res) , .q(timeoutb) , .q_comp(qcompb));
-                                
-    eight_bit_PISOshift_reg regc ( .in(8'b00010000) 
-            ,.clk(timeoutb) , .SH_LD(compout) ,.out(regcout));
-    assign sysout = regcout;
+ BCDencoder bcdenc (.in(key) , .BCDout(BCDout) );
+ fourbitPIPOshiftreg rega(.clk(clk), .in(BCDout), .out(PIPOouta));                    
+ fourbitPIPOshiftreg regb(.clk(clk), .in(codeselectorout), .out(PIPOoutb));
+ FSM fsm (.clk(clk) , .reset(res) , .y1(y1) , .y2(y2) , .y3(y3) , .y4(y4) , .y5(y5), .x1(x1) , .x2(x2) , .x3(x3) , .x4(x4) , .init(init));
+ secsys_datapath datapath (.clk(clk), .enter(enter), .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4), .key(key)
+                        , .PIPOouta(PIPOouta) , .PIPOoutb(PIPOoutb) , .done(done), .codeselectorout(codeselectorout) , .init(init) ,
+                        .y1(y1) , .y2(y2) , .y3(y3) , .y4(y4) , .y5(y5), .x1(x1) , .x2(x2) , .x3(x3) , .x4(x4));
+assign sysout = x4;
+   
 endmodule
 
-module testsecsyspr;
+module testsecuresys;
     reg [9:0] key;
     reg enter;
     reg clk;
@@ -219,6 +233,9 @@ module testsecsyspr;
 
     localparam clockcycle = 10 ; 
     always #(clockcycle/2) clk =~clk; 
+
+    $dumpfile("wave.vcd");
+    $dumpvars(0, testsecuresys);
 
     initial begin
 
