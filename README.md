@@ -92,7 +92,7 @@ To simulate or synthesize this Verilog project, you will need a Verilog simulato
 
 ## 🛠️ How to Use
 
-### Simulation (Icarus Verilog + GTKWave)
+### Simulation (Icarus Verilog + GTKWave) ** If using the testbench separately , if not just use the file** 
 ```
 1.  **Compile with Icarus Verilog**:
     ```bash
