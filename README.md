@@ -20,7 +20,7 @@ This project presents a digital security system implemented in Verilog HDL. The 
 
 ## ⚠️ Design Evolution 
 
-The original design, taken from a digital systems textbook, uses an **asynchronous timing-based approach**. The sequencing of operations is controlled entirely by one-shot timers — two of them chained together — instead of a proper controller. The idea is that each one-shot fires after a fixed pulse width, giving the downstream logic "enough time" to settle before the next stage latches data.
+The original design, taken from a digital systems textbook, uses an **asynchronous timing-based approach**(it is labeled as secsys(old_async_design).v). The sequencing of operations is controlled entirely by one-shot timers — two of them chained together — instead of a proper controller. The idea is that each one-shot fires after a fixed pulse width, giving the downstream logic "enough time" to settle before the next stage latches data.
 
 In practice, this turned out to be very hard to debug. The timing between the one-shots and the data signals is not guaranteed — if the pulse width is too short, the shift registers latch garbage. If it's too long, the system is just slow for no reason. There's no way to formally verify that the timing is correct without running a simulation and viewing waveforms.
 
