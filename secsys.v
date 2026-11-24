@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 05/01/2026 12:00:51 AM
-// Design Name: 
-// Module Name: secsys
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module BCDencoder ( 
 input [9:0]in , 
@@ -183,12 +164,6 @@ assign x2 = |key;
 magcomp localcomp(.opa(PIPOouta) , .opb(PIPOoutb) , .comp_eq(x3)) ;   
 eight_bit_PISOshift_reg regc ( .in(8'b00010000) ,.clk(clk) , .SH_LD(sh_ld) ,.out(x4));
 
-// always @(posedge clk) begin
-//     if (y5 && x4) begin
-//       done <= 1'b1;
-//     end
-// end
-
 endmodule 
 
 module secsys(
@@ -239,61 +214,6 @@ assign sysout = x4;
    
 endmodule
 
-// module testsecuresys;
-//     reg [9:0] key;
-//     reg enter;
-//     reg clk;
-//     reg res;
-//     reg [3:0] dip1, dip2, dip3, dip4;
-//     wire sysout;
-
-//     secsys test (.key(key), .enter(enter), .clk(clk), .res(res),
-//                  .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4),
-//                  .sysout(sysout));
-
-//     localparam clockcycle = 20 ; 
-//     always #(clockcycle/2) clk =~clk; 
-//     // clk is 10 ns
-    
-//     initial begin
-
-//         $dumpfile("wave.vcd");
-//         $dumpvars(0, testsecuresys);
-
-// 	    #(clockcycle*2) res<=0;
-//   	    #(clockcycle*2) res<=1;clk<=0;
-
-//         @(posedge clk);
-//         // set DIP switches first (secret code = 4567)
-//         dip1 = 4'h4;
-//         dip2 = 4'h5;
-//         dip3 = 4'h6;
-//         dip4 = 4'h7;
-// 	    enter = 1'b1;
-
-
-//         @(posedge clk)
-//         key = 10'b00_0001_0000; // key = 4
-//         $display( "T=0%t the result of the operation", $time , sysout);
-
-//         @(posedge clk) ;
-//         key = 10'b00_0010_0000; // key = 5 
-//         $display( "T=0%t the result of the operation", $time , sysout);
-
-//         @(posedge clk) ;
-//         key = 10'b00_0100_0000; // key = 6
-//         $display( "T=0%t the result of the operation", $time , sysout);
-
-//         // repeat(4) @(posedge clk)
-//         // enter = 1'b1;
-//         // key = 10'b00_1000_0000; // key = 7
-//         // @(posedge clk) enter = 0;
-//         // $display( "T=0%t the result of the operation", $time , sysout);
-
-//         repeat(2) @(posedge clk) $finish;
-//     end
-// endmodule
-
 module testsecuresys;
     reg [9:0] key;
     reg enter;
@@ -302,7 +222,7 @@ module testsecuresys;
     reg [3:0] dip1, dip2, dip3, dip4;
     wire sysout;
 
-    // Instantiate the top-level security system
+    
     secsys test (
         .key(key), 
         .enter(enter), 
@@ -323,63 +243,63 @@ module testsecuresys;
         $dumpfile("wave.vcd");
         $dumpvars(0, testsecuresys);
 
-        // 1. Initialize all inputs at time 0
+        
         clk   = 0;
-        res   = 0; // Active-low reset
+        res   = 0; 
         enter = 0;
         key   = 10'b0;
 
-        // Set secret combination DIP switches (Code: 4-5-6-7)
-        dip1  = 4'h4; 
-        dip2  = 4'h5; 
-        dip3  = 4'h6; 
-        dip4  = 4'h7; 
+        // Set secret combination DIP switches
+        dip1  = 4'h7; 
+        dip2  = 4'h1; 
+        dip3  = 4'h1; 
+        dip4  = 4'h5; 
 
-        // 2. Apply Reset for 2 clock cycles
+        
         #(clockcycle * 2);
-        res = 1; // Release reset
+        res = 1; 
         
         @(posedge clk);
         $display("--- System Initialized & Reset Released at T=%0t ---", $time);
 
-        // 3. Press ENTER to start digit entry (Hold for synchronizer latency)
+        // 3. Press ENTER to start digit entry 
         enter = 1'b1;
         repeat (3) @(posedge clk); 
         enter = 1'b0; // Release ENTER button
         
         $display("--- ENTER Pressed. Awaiting Code Digits ---");
 
-        // --- DIGIT 1: Press Key '4' ---
+        // --- DIGIT 1: 
         @(posedge clk);
-        key = 10'b00_0001_0000;      // Key 4
-        repeat (4) @(posedge clk);   // Wait for 2-stage sync + FSM evaluation
+        key = 10'b00_1000_0000;     
+        repeat (4) @(posedge clk);   
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 1 ('4') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 1 ('7') entered. sysout = %b", $time, sysout);
 
-        // --- DIGIT 2: Press Key '5' ---
+        // --- DIGIT 2: 
         @(posedge clk);
-        key = 10'b00_0010_0000;      // Key 5
+        key = 10'b00_0000_0010;      
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 2 ('5') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 2 ('1') entered. sysout = %b", $time, sysout);
 
-        // --- DIGIT 3: Press Key '6' ---
+        // --- DIGIT 3: 
         @(posedge clk);
-        key = 10'b00_0100_0000;      // Key 6
+        key = 10'b00_0000_0010;      
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 3 ('6') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 3 ('1') entered. sysout = %b", $time, sysout);
 
-        // --- DIGIT 4: Press Key '7' ---
+        // --- DIGIT 4:
         @(posedge clk);
-        key = 10'b00_1000_0000;      // Key 7
+        key = 10'b00_0010_0000;     
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 4 ('7') entered. Final sysout = %b (1 = UNLOCKED)", $time, sysout);
+        $display("T=%0t | Digit 4 ('5') entered. Final sysout = %b (1 = UNLOCKED)", $time, sysout);
 
         repeat (5) @(posedge clk);
         $finish;
