@@ -44,15 +44,17 @@ endmodule
 module eight_bit_PISOshift_reg( 
     input [7:0]in,
     input clk,
-    input SH_LD,
+    input SH,
+    input LD,
     output reg out
 );
     reg [7:0]mem;
     always @(posedge clk) begin 
-    if (!SH_LD) begin 
+    if (LD) begin 
+        out <= 1'b0;
         mem <= in;
     end 
-    else if (SH_LD) begin
+    else if (SH) begin
         out <= mem[0]; 
         mem <= { 1'b0 , mem[7:1] };
     end
@@ -62,7 +64,8 @@ endmodule
 module CodeSelection (
     input ShiftIn,      
     input clk,          
-    input sh_ld,
+    input sh,
+    input ld,
     input [3:0] dip1,   // DIP switch code digit 1
     input [3:0] dip2,   // DIP switch code digit 2
     input [3:0] dip3,   // DIP switch code digit 3
@@ -73,10 +76,10 @@ module CodeSelection (
     reg [3:0] sel;
 
     always @(posedge clk) begin
-        if (!sh_ld) begin
+        if (ld) begin
           sel <= 4'b1000;
         end                 
-        else if (sh_ld) begin
+        else if (sh) begin
           sel <= {ShiftIn ,sel[3:1]};
         end     
     end
@@ -91,12 +94,11 @@ endmodule
 module FSM ( 
     input clk ,reset ,
     input x1,x2,x3,x4,
-    output y1,y2,y3,y4,y5,
-    output init
+    output y1,y2,y3_l,y3_c,y4,y5,y6
 );
 
 reg [3:0] state,next_state;
-parameter S0 = 4'd0, S1 = 4'd1 , S2 = 4'd2 , S3 = 4'd3 , S4 = 4'd4 ,S5 = 4'd5 ;
+parameter S0 = 4'd0, S1 = 4'd1 , S2 = 4'd2 , S3_latch = 4'd3 , S3_comp = 4'd4, S4 = 4'd5 ,S5 = 4'd6, S6 = 4'd7 , swait = 4'd8;
 
 always @(posedge clk or negedge reset) begin
     if (!reset) state <= S0;
@@ -104,6 +106,7 @@ always @(posedge clk or negedge reset) begin
 end
 
 always @(*) begin
+    next_state = state;
     case (state)
     S0 : next_state = S1;
     S1 : begin        
@@ -112,16 +115,22 @@ always @(*) begin
     end
     S2 : begin 
         if (!x2) next_state = S2 ;
-        else if (x2) next_state = S3;
+        else if (x2) next_state = S3_latch;
     end
-    S3 : begin 
+    S3_latch : next_state = S3_comp;
+    S3_comp : begin 
         if (x3) next_state = S5 ; 
-        else if (!x3) next_state = S4 ;
+        else next_state = S4 ;
     end
-    S4 : next_state = S2 ;
-    S5 : begin 
-        if (!x4) next_state = S2 ;
-        else if (x4) next_state = S0 ;
+    S4 : next_state = swait ;
+    S5 : next_state = S6 ;
+    S6 : begin 
+         if (x4) next_state = S0 ;
+        else next_state = swait ;
+    end
+    swait : begin
+      if (!x2) next_state = S2;
+      else next_state = swait;
     end
     default : next_state = S0;
     endcase
@@ -129,18 +138,17 @@ end
 
 assign y1 = (state == S1) ;
 assign y2 = (state == S2) ;
-assign y3 = (state == S3) ; 
+assign y3_l = (state == S3_latch) ; 
+assign y3_c = (state == S3_comp) ;
 assign y4 = (state == S4) ;
 assign y5 = (state == S5) ;
-
-//control signal of the initializing process
-assign init = (state == S1) ;
+assign y6 = (state == S6) ;
 
 endmodule
 
 module secsys_datapath (
     input clk ,
-    input y1,y2,y3,y4,y5,
+    input y1,y2,y3_l,y3_c,y4,y5,y6,
     input [9:0]key,
     input [3:0]dip1,
     input [3:0]dip2,
@@ -148,22 +156,20 @@ module secsys_datapath (
     input [3:0]dip4, 
     input enter,
     input [3:0]PIPOouta,PIPOoutb,
-    input init,
     output x1,x2,x3,x4,
     output [3:0]codeselectorout
 );
-wire control;
-wire sh_ld;
-assign control = x3?y5:~y4;
-assign sh_ld = init ? 1'b0 : control;
+wire sh , ld;
 
-CodeSelection selector (.ShiftIn(1'b0) , .sh_ld(sh_ld), .clk(clk), .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4), .Bout(codeselectorout));
+assign sh = y5;
+assign ld = y4 | y1;
+
+CodeSelection selector (.ShiftIn(1'b0) , .sh(sh), .ld(ld) , .clk(clk), .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4), .Bout(codeselectorout));
 
 assign x1 = enter;
 assign x2 = |key;
 magcomp localcomp(.opa(PIPOouta) , .opb(PIPOoutb) , .comp_eq(x3)) ;   
-eight_bit_PISOshift_reg regc ( .in(8'b00010000) ,.clk(clk) , .SH_LD(sh_ld) ,.out(x4));
-
+eight_bit_PISOshift_reg regc ( .in(8'b00001000) ,.clk(clk) , .SH(sh), .LD(ld) ,.out(x4));
 endmodule 
 
 module secsys(
@@ -199,17 +205,16 @@ module secsys(
     wire [3:0]PIPOouta;
     wire [3:0]PIPOoutb;
     wire [3:0]codeselectorout;
-    wire init;
-    wire y1,y2,y3,y4,y5;
+    wire y1,y2,y3_l,y3_c,y4,y5,y6;
     wire x1,x2,x3,x4;
 
  BCDencoder bcdenc (.in(key_sync2) , .BCDout(BCDout) );
- fourbitPIPOshiftreg rega(.clk(clk), .en(y3) ,.in(BCDout), .out(PIPOouta));                    
- fourbitPIPOshiftreg regb(.clk(clk), .en(y3) ,.in(codeselectorout), .out(PIPOoutb));
- FSM fsm (.clk(clk) , .reset(res) , .y1(y1) , .y2(y2) , .y3(y3) , .y4(y4) , .y5(y5), .x1(x1) , .x2(x2) , .x3(x3) , .x4(x4) , .init(init));
+ fourbitPIPOshiftreg rega(.clk(clk), .en(y3_l) ,.in(BCDout), .out(PIPOouta));                    
+ fourbitPIPOshiftreg regb(.clk(clk), .en(y3_l) ,.in(codeselectorout), .out(PIPOoutb));
+ FSM fsm (.clk(clk) , .reset(res) , .y1(y1) , .y2(y2) , .y3_l(y3_l) , .y3_c(y3_c) , .y4(y4) , .y5(y5), .y6(y6),.x1(x1) , .x2(x2) , .x3(x3) , .x4(x4));
  secsys_datapath datapath (.clk(clk), .enter(enter_sync2), .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4), .key(key_sync2)
-                        , .PIPOouta(PIPOouta) , .PIPOoutb(PIPOoutb) , .codeselectorout(codeselectorout) , .init(init) ,
-                        .y1(y1) , .y2(y2) , .y3(y3) , .y4(y4) , .y5(y5), .x1(x1) , .x2(x2) , .x3(x3) , .x4(x4));
+                        , .PIPOouta(PIPOouta) , .PIPOoutb(PIPOoutb) , .codeselectorout(codeselectorout) ,
+                        .y1(y1) , .y2(y2) , .y3_l(y3_l) , .y3_c(y3_c), .y4(y4) , .y5(y5), .y6(y6) ,.x1(x1) , .x2(x2) , .x3(x3) , .x4(x4));
 assign sysout = x4;
    
 endmodule
@@ -238,6 +243,14 @@ module testsecuresys;
     // Clock Generation: 20 ns period (50 MHz)
     localparam clockcycle = 20; 
     always #(clockcycle/2) clk = ~clk; 
+
+    initial begin
+        @(posedge res);
+        @(posedge sysout);
+
+        $display("T=%0t | Sysout went HIGH, UNLOCKED", $time);
+    end
+
 
     initial begin
         $dumpfile("wave.vcd");
@@ -275,7 +288,7 @@ module testsecuresys;
         repeat (4) @(posedge clk);   
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 1 ('7') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 1 ('7') entered", $time);
 
         // --- DIGIT 2: 
         @(posedge clk);
@@ -283,7 +296,7 @@ module testsecuresys;
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 2 ('1') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 2 ('1') entered", $time );
 
         // --- DIGIT 3: 
         @(posedge clk);
@@ -291,7 +304,7 @@ module testsecuresys;
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 3 ('1') entered. sysout = %b", $time, sysout);
+        $display("T=%0t | Digit 3 ('1') entered", $time );
 
         // --- DIGIT 4:
         @(posedge clk);
@@ -299,7 +312,7 @@ module testsecuresys;
         repeat (4) @(posedge clk);
         key = 10'b0;                 // Release key
         repeat (2) @(posedge clk);
-        $display("T=%0t | Digit 4 ('5') entered. Final sysout = %b (1 = UNLOCKED)", $time, sysout);
+        $display("T=%0t | Digit 4 ('5') entered", $time );
 
         repeat (5) @(posedge clk);
         $finish;
