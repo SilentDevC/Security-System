@@ -33,7 +33,16 @@ The new version uses a **synchronous FSM/Datapath architecture**:
 - Everything is clocked on a single system clock — no one-shots, no asynchronous timing, no pulse widths to tune
 - Behavior is deterministic and formally verifiable
 
-The FSM based design has the edge over the async one because it simplifies the debugging and extending the device.
+The FSM based design has the edge over the async one because it simplifies the debugging and extending the device.Though the design brought forth a couple of issues:
+```
+1. Registers without a hold mode shifted on every clock edge.
+2. The FSM compared old register values, because the registers updated on the same edge the decision was made.
+3. The PISO output was read one state before its shift took effect.
+4. A held key was counted as several presses.
+5. Asynchronous inputs could cause metastability.
+```
+In order to solve them I expanded the initial 6 state FSM into 9 states, which includes two states for the latching and comparing the input and the internal values of the prerecorded code.The SH/LD signal on both the shift registers and the CodeSelector logic were separated into a SH (shift) and LD (load) signals so they can hold. The newly added latching and comparing states make the comparator always see the new values.There is also a wait state (called swait in the code) which holds while the key is held and by that rejecting any new input. 
+To solve the metastability issue between the async input and the internal clock I've added a synchronizer into the top module which alignes the input to the internal clock and then sends the signals down to the modules.
 
 The original async implementation is preserved in the repo for reference, since going through it was genuinely useful for understanding why the synchronous approach is better.
 
