@@ -1,151 +1,157 @@
 # Security-System 🔒
 A Verilog HDL implementation of a digital security system providing coded access control to a secured area.
-##
-A Verilog HDL description of a security system that provides coded access to a secured area. The provided module needs debugging and polishing to be completed.The development done using ModelSIM.
 
 ![GitHub License](https://img.shields.io/github/license/SilentDevC/Security-System?style=for-the-badge&color=blue)
 ![GitHub Language](https://img.shields.io/github/languages/top/SilentDevC/Security-System?style=for-the-badge&color=orange)
 
 ## 📚 Table of Contents
+*   [📝 Description](#-description)
+*   [⚠️ Design Evolution](#️-design-evolution)
+*   [🔄 System Flow](#-system-flow)
 *   [🌟 Features](#-features)
 *   [💻 Tech Stack](#-tech-stack)
+*   [🚧 Current Status](#-current-status)
 *   [🚀 Installation](#-installation)
+*   [🛠️ How to Use](#️-how-to-use)
 *   [💡 Usage](#-usage)
-*   [🛠️ How to Use](#%EF%B8%8F-how-to-use)
 *   [📂 Project Structure](#-project-structure)
-*   [📜 License](#-license)
+*   [🖼 Diagrams](#-diagrams)
+*   [⚖ License](#-license)
 
 ## 📝 Description
-This project presents a digital security system implemented in Verilog HDL. The system requires a user to enter a 4-digit code via a keypad to gain access to a secured area. It started as a port of a textbook VHDL reference design and evolved into a full redesign — more on that below.
+This project is a digital security system written in Verilog HDL. The user enters a 4-digit code on a keypad, and the system compares it digit by digit against a secret code set on DIP switches. After four correct digits in a row, the output goes high.
 
-## ⚠️ Design Evolution 
+It started as a port of a textbook VHDL reference design and evolved into a full redesign using a synchronous FSM/Datapath architecture. More on that below.
 
-The original design, taken from a digital systems textbook, uses an **asynchronous timing-based approach**(it is labeled as secsys(old_async_design).v). The sequencing of operations is controlled entirely by one-shot timers — two of them chained together — instead of a proper controller. The idea is that each one-shot fires after a fixed pulse width, giving the downstream logic "enough time" to settle before the next stage latches data.
+## ⚠️ Design Evolution
 
-In practice, this turned out to be very hard to debug. The timing between the one-shots and the data signals is not guaranteed — if the pulse width is too short, the shift registers latch garbage. If it's too long, the system is just slow for no reason. There's no way to formally verify that the timing is correct without running a simulation and viewing waveforms.
+The original design, taken from a digital systems textbook, uses an **asynchronous timing-based approach** (preserved as `secsys(old_async_design).v`). Its sequencing is controlled by two chained one-shot timers instead of a controller. Each one-shot fires after a fixed pulse width, giving the downstream logic "enough time" to settle before the next stage latches data.
 
-After going through the full debugging cycle on the original design — tracking down race conditions, wrong clock edges, and uninitialized signals in simulation — I decided the right move was to rebuild it properly rather than keep patching this architecture.
+In practice this was very hard to debug. The timing between the one-shots and the data signals is not guaranteed: if the pulse width is too short, the shift registers latch garbage; if it is too long, the system is slow for no reason. The only way to check the timing is to simulate and inspect waveforms.
+
+After a full debugging cycle on the original design (race conditions, wrong clock edges, uninitialized signals), I decided to rebuild it properly rather than keep patching that architecture.
 
 The new version uses a **synchronous FSM/Datapath architecture**:
 
-- A **control unit (FSM)** drives the sequencing explicitly through defined states
-- A **datapath** handles all the data movement — BCD encoding, register latching, comparison, alarm shifting
-- Everything is clocked on a single system clock — no one-shots, no asynchronous timing, no pulse widths to tune
-- Behavior is deterministic and formally verifiable
+- A **control unit (Moore FSM)** drives the sequencing explicitly through defined states.
+- A **datapath** handles the data movement: BCD encoding, register latching, comparison and the output shift register.
+- Everything runs on a single system clock. There are no one-shots and no pulse widths to tune.
+- Behavior is deterministic and can be traced state by state in simulation.
 
-The FSM based design has the edge over the async one because it simplifies the debugging and extending the device.Though the design brought forth a couple of issues:
-```
+The FSM-based design makes the device easier to debug and extend. Moving to a single clock did expose a few issues:
+
 1. Registers without a hold mode shifted on every clock edge.
 2. The FSM compared old register values, because the registers updated on the same edge the decision was made.
 3. The PISO output was read one state before its shift took effect.
 4. A held key was counted as several presses.
 5. Asynchronous inputs could cause metastability.
-```
-In order to solve them I expanded the initial 6 state FSM into 9 states, which includes two states for the latching and comparing the input and the internal values of the prerecorded code.The SH/LD signal on both the shift registers and the CodeSelector logic were separated into a SH (shift) and LD (load) signals so they can hold. The newly added latching and comparing states make the comparator always see the new values.There is also a wait state (called swait in the code) which holds while the key is held and by that rejecting any new input. 
-To solve the metastability issue between the async input and the internal clock I've added a synchronizer into the top module which alignes the input to the internal clock and then sends the signals down to the modules.
 
-The original async implementation is preserved in the repo for reference, since going through it was genuinely useful for understanding why the synchronous approach is better.
+To solve them:
+
+- The combined SH/LD control on the shift registers and the code selection logic was split into separate **SH** (shift) and **LD** (load) signals, so the registers can **hold** when neither is asserted.
+- The FSM was expanded from 6 to 9 states:
+  - Separate **latch** and **compare** states, so the comparator always sees the new values.
+  - A **check** state after each shift, so the PISO output has settled before the FSM reads it.
+  - A **wait** state (`swait`), which holds while a key is still pressed, so one press counts as one digit.
+- A two-flip-flop **synchronizer** in the top module aligns the keypad and enter inputs to the system clock before they reach the rest of the design.
+
+The original async implementation is kept in the repo for reference, since working through it was genuinely useful for understanding why the synchronous approach is better.
 
 ## 🔄 System Flow
 
-The system follows this sequence:
+1. **Reset:** the FSM goes to its initial state.
+2. **Wait for `#` (Enter):** the code selection logic and the output shift register are loaded.
+3. **Wait for a key:** the user presses a digit on the keypad.
+4. **Latch:** the BCD-encoded digit and the expected digit from the DIP switches are latched into registers A and B.
+5. **Compare:** the comparator checks whether they match.
+6. **On a match:** the output shift register shifts once and the code selection advances to the next digit. The next state checks whether all four digits are done.
+7. **On a mismatch:** the code selection and the output shift register are reloaded, and the user starts over from digit 1.
+8. **Wait for key release** before accepting the next digit.
+9. **After 4 correct digits:** the output (`sysout`) goes high.
 
-1. Initialize all registers
-2. Wait for `#` (Enter) to be pressed — this loads the code selection logic
-3. User enters a digit via keypad
-4. The digit is BCD encoded and latched alongside the expected digit from the DIP switches
-5. Comparator checks if they match
-6. On a match: alarm shift register shifts by one, code selection advances to the next digit
-7. On a mismatch: code selection resets, user must start over from digit 1
-8. After 4 correct digits in sequence: alarm output goes high
+### FSM states
 
-## 🌟 Features ( **in works** )
+| State | Output | Action | Next state |
+|---|---|---|---|
+| `S0` | – | Reset / start | `S1` |
+| `S1` | `y1` | Load code selector and shift register C | `S2` when Enter is pressed |
+| `S2` | `y2` | Wait for a key | `S3_latch` when a key is pressed |
+| `S3_latch` | `y3_l` | Latch entered and expected digit into registers A and B | `S3_comp` |
+| `S3_comp` | `y3_c` | Compare | `S5` on match, `S4` on mismatch |
+| `S4` | `y4` | Wrong digit: reload code selector and shift register C | `swait` |
+| `S5` | `y5` | Correct digit: shift code selector and shift register C | `S6` |
+| `S6` | `y6` | Check whether the code is complete | `S0` if done (unlock), else `swait` |
+| `swait` | – | Wait for key release | `S2` when the key is released |
 
-- 4-digit coded access control via 10-key keypad
-- DIP switch-settable secret code
-- Full reset on wrong digit entry — no partial credit
-- Synchronous single-clock design (FSM version)
-- Alarm output via serial shift register
-- Verified via ModelSim testbench simulation
-- Synthesizable on Xilinx Spartan FPGA
+Control signals: `ld = y1 | y4`, `sh = y5`, and registers A/B load when `y3_l` is high.
+
+## 🌟 Features
+
+- 4-digit coded access control via a 10-key keypad
+- Secret code set on DIP switches
+- Full reset on a wrong digit; no partial credit
+- Synchronous single-clock Moore FSM/Datapath design
+- Input synchronizer for the asynchronous keypad and Enter signals
+- Key-release detection, so a held key is counted once
+- Verified in simulation with a self-contained testbench (Icarus Verilog + GTKWave)
 
 ## 💻 Tech Stack
 
-- **Hardware Description Language**: Verilog HDL
-- **Simulation**: ModelSim / Icarus Verilog + GTKWave
-- **Target Hardware**: Xilinx Spartan FPGA (Vivado toolchain)
+- **Hardware Description Language:** Verilog HDL
+- **Simulation:** Icarus Verilog + GTKWave (originally developed in ModelSim)
+- **Target hardware:** Xilinx Spartan FPGA
 
 ## 🚧 Current Status
 
-The FSM/Datapath redesign is actively in progress. Right now I am working through:
+The FSM/Datapath redesign is complete and passes the simulation testbench: a correct 4-digit sequence drives `sysout` high.
 
-- **Block diagram** — clean separation of datapath components and control signals, figuring out exactly what wires go where and which signals are combinational vs sequential
-- **Moore FSM design** — state diagram with clearly defined states, transition conditions, and output signals (y1..yn) for each state
-- **Schematic implementation** — drawing the full system schematic showing the FSM control unit, datapath components, and all interconnections
+Next steps:
 
-The async implementation in the repo is the reference point for what the system is supposed to do. The FSM version will replace it once the design is finalized and verified in simulation.
+- **FSM state diagram** as a figure in the repo
+- **Unlocked state:** at the moment `sysout` is a short pulse; a dedicated state would hold it until relocked
+- **FPGA synthesis** on a Spartan board, with a resource utilization and timing report
+- **Negative test cases** in the testbench (wrong codes, held keys)
 
 ## 🚀 Installation
-To simulate or synthesize this Verilog project, you will need a Verilog simulator and/or an FPGA/ASIC synthesis toolchain. No specific installation steps are required for the Verilog files themselves, as they are source code.
+No installation is needed for the Verilog sources themselves; you only need a simulator and, optionally, an FPGA toolchain.
 
-1.  **Clone the repository**:
+1.  **Clone the repository:**
     ```bash
     git clone https://github.com/SilentDevC/Security-System.git
     cd Security-System
     ```
 
-2. Choose a toolchain:
-    - **Icarus Verilog + GTKWave** — free, great for simulation
-    - **ModelSim** — what this was developed and debugged on
-    - **Vivado** — for synthesis and FPGA deployment
+2.  **Choose a toolchain:**
+    - **Icarus Verilog + GTKWave:** free, used for the current simulation flow
+    - **ModelSim / QuestaSim:** used during early development
+    - **Vivado:** for synthesis and FPGA deployment
 
 ## 🛠️ How to Use
 
-### Simulation (Icarus Verilog + GTKWave) ** If using the testbench separately , if not just use the file** 
-```
-1.  **Compile with Icarus Verilog**:
+### Simulation (Icarus Verilog + GTKWave)
+
+The testbench (`testsecuresys`) is included at the end of `secsys.v`, so a single file is enough.
+
+1.  **Compile:**
     ```bash
-    iverilog -o secsys_sim secsys.v secsys_tb.v
+    iverilog -o secsys.v.out secsys.v
     ```
-2.  **Run Simulation**:
+2.  **Run the simulation:**
     ```bash
-    vvp secsys_sim
+    vvp secsys.v.out
     ```
-3.  **To generate a waveform file for GTKWave:**
+    This prints the progress of the input sequence and writes `wave.vcd`.
+3.  **View the waveforms:**
     ```bash
-    iverilog -o secsys_sim secsys.v secsys_tb.v
-    vvp secsys_sim -lxt2
-    ```
-4.  **View Waveforms with GTKWave**:
-    ```bash
-    gtkwave dump.lxt
+    gtkwave wave.vcd
     ```
 
-5.  **Or you can choose another Verilog Toolchain**:
-    *   **ModelSim / QuestaSim (Commercial)**: Comprehensive simulation and debugging.
-    *   **Vivado / Quartus (Commercial)**: For FPGA synthesis and implementation (Xilinx and Intel/Altera respectively).
-```
-## 💡 Usage
-This project's primary use case is in digital logic design for embedded systems where secure access is required. It can be simulated to verify its functionality or synthesized onto an FPGA board for a real-world demonstration of a coded entry system.
+The testbench sets the secret code on the DIP switches, releases reset, presses Enter and then enters the four digits:
 
-### Real-world Use Cases:
-*   **Home Automation**: Implementing a simple keypad entry for a smart lock system.
-*   **Embedded Security**: Basic access control for industrial equipment or secure data storage units.
-*   **Educational Purposes**: A practical example for students learning sequential logic, state machines, and Verilog HDL.
-
-## 🛠️ How to Use
-To interact with and utilize the `secsys.v` module, you would typically follow these steps:
-
-### 1. Simulation (using ModelSIM)
-
-1.  **Create a Testbench**.
-    ```verilog
-    // Example of a basic testbench structure (this is the actual part of the testbench from the project )
-    module testsecuresys;
+```verilog
+module testsecuresys;
     reg [9:0] key;
-    reg enter;
-    reg clk;
-    reg res;
+    reg enter, clk, res;
     reg [3:0] dip1, dip2, dip3, dip4;
     wire sysout;
 
@@ -153,49 +159,54 @@ To interact with and utilize the `secsys.v` module, you would typically follow t
                  .dip1(dip1), .dip2(dip2), .dip3(dip3), .dip4(dip4),
                  .sysout(sysout));
 
-    localparam clockcycle = 10;
+    localparam clockcycle = 20;
     always #(clockcycle/2) clk = ~clk;
 
     initial begin
-        // set secret code via DIP switches
-        dip1 = 4'h4; dip2 = 4'h5; dip3 = 4'h6; dip4 = 4'h7;
-
-        res = 0; #20 res = 1;
-
-        // press # to initialize
-        #10 enter = 1; #10 enter = 0;
-
-        // enter digits...
+        $dumpfile("wave.vcd");
+        $dumpvars(0, testsecuresys);
+        // set the secret code, release reset, press Enter,
+        // then enter the four digits one key press at a time
     end
-    endmodule
-2. Run Simulation using the ModelSIM GUI and view the resulting wavefrom.
+endmodule
+```
 
-### 2. Synthesis (for FPGA)
+### Synthesis (FPGA)
 
-1.  **Add `secsys.v` to your FPGA Project**: Create a new project in your preferred FPGA IDE (e.g., Vivado, Quartus).
-2.  **Define Top-Level Module**: Ensure `secsys.v` is the top-level module or is instantiated within one.
-3.  **Create Constraints File (XDC/SDC)**: Define pin assignments, clock frequencies, and other timing constraints relevant to your target FPGA board.
-4.  **Synthesize and Implement**: Run the synthesis, implementation (placement and routing), and bitstream generation flow in your FPGA IDE.
-5.  **Program FPGA**: Load the generated bitstream onto your FPGA development board.
-6.  **Test Hardware**: Interact with the system on the hardware using physical inputs (e.g., buttons, switches) and observe outputs (e.g., LEDs, 7-segment displays).
+1.  **Create a project** in Vivado (or your preferred FPGA IDE) and add `secsys.v`, without the testbench module.
+2.  **Set `secsys` as the top-level module.**
+3.  **Write a constraints file (XDC)** with pin assignments for the keypad, DIP switches, Enter, reset, clock and output LED.
+4.  **Run synthesis and implementation**, then generate the bitstream.
+5.  **Program the board** and test with the physical inputs.
+
+## 💡 Usage
+The design can be simulated to check its behavior, or synthesized onto an FPGA as a hardware demonstration of a coded entry system. It is also a compact example of sequential logic, Moore FSM design and FSM/Datapath partitioning in Verilog.
 
 ## 📂 Project Structure
 ```
 Security-System/
 ├── README.md
 ├── LICENSE
-└── secsys.v   ← all modules + testbench
+├── .gitignore
+├── secsys.v                            ← FSM/Datapath design + testbench
+├── secsys(old_async_design).v          ← original async design (reference)
+├── code_lock_schematic_v8.svg          ← FSM-based datapath schematic
+├── security_code_logic_circuit.svg     ← code selection logic
+└── security_system_block_diagram.svg   ← original async block diagram
 ```
 
-## 🖥 Old Asynchronous Design 
+## 🖼 Diagrams
+
+### 🖥 Old Asynchronous Design
 ![security_system_block_diagram.svg](security_system_block_diagram.svg)
 
-## ⚙ New FSM based Synchronous design
+### ⚙ New FSM-Based Synchronous Design
 ![code_lock_schematic_v8.svg](code_lock_schematic_v8.svg)
 
-**Both designs use the Code Selector logic circuit which holds the correct pattern**
-##
+### Code Selection Logic
+Both designs use this circuit to select the expected code digit. In the FSM design, its shift register has separate SH and LD inputs.
+
 ![security_code_logic_circuit.svg](security_code_logic_circuit.svg)
 
-## ⚖ LICENSE  
+## ⚖ License
 MIT License. See [LICENSE](LICENSE) for details.
