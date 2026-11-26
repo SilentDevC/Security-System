@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1010 370" role="img">
+<title>Moore FSM state diagram of the security system</title>
+<desc>Nine-state Moore FSM. S0 goes to S1. S1 waits for enter (x1), S2 waits for a key (x2), S3_latch latches the digits, S3_comp branches on x3 to S5 (match) or S4 (mismatch). S5 goes to S6, which goes to S0 when the code is complete (x4) or to swait otherwise. S4 goes to swait. swait waits for the key to be released, then returns to S2. Each state shows its Moore output.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#898781" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="0" y="0" width="1010" height="370" fill="white"/>
+<path d="M18 180 L56 180" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="36.0" y="166.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">reset</text>
+<path d="M122.0 180.0 L186.0 180.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path d="M252.0 180.0 L316.0 180.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="284.0" y="168.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x1</text>
+<path d="M382.0 180.0 L448.0 180.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="415.0" y="168.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x2</text>
+<path d="M530.0 180.0 L598.0 180.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path d="M674.2 159.2 L750.9 112.6" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="706.6" y="123.9" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x3</text>
+<path d="M674.2 200.8 L750.9 247.4" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="706.6" y="236.1" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x3'</text>
+<path d="M812.0 95.0 L876.0 95.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path d="M910.0 127.0 L910.0 231.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="924.0" y="179.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x4'</text>
+<path d="M812.0 265.0 L876.0 265.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path d="M204.0 152.3 C190.0 106.3 250.0 106.3 236.0 150.3" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="220.0" y="104.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x1'</text>
+<path d="M334.0 152.3 C320.0 106.3 380.0 106.3 366.0 150.3" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="350.0" y="104.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x2'</text>
+<path d="M937.7 249.0 C983.7 235.0 983.7 295.0 939.7 281.0" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="984.0" y="265.0" text-anchor="start" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x2</text>
+<path d="M910 63 L910 22 L90 22 L90 146" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="500.0" y="12.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x4  (code complete → unlock)</text>
+<path d="M910 297 L910 345 L350 345 L350 214" fill="none" stroke="#898781" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="630.0" y="357.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">x2'  (key released)</text>
+<circle cx="90" cy="180" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="90.0" y="173.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S0</text>
+<text x="90.0" y="190.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">–</text>
+<circle cx="220" cy="180" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="220.0" y="173.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S1</text>
+<text x="220.0" y="190.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y1</text>
+<circle cx="350" cy="180" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="350.0" y="173.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S2</text>
+<text x="350.0" y="190.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y2</text>
+<circle cx="490" cy="180" r="40" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="490.0" y="173.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S3_latch</text>
+<text x="490.0" y="190.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y3_l</text>
+<circle cx="640" cy="180" r="40" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="640.0" y="173.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S3_comp</text>
+<text x="640.0" y="190.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y3_c</text>
+<circle cx="780" cy="95" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="780.0" y="88.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S5</text>
+<text x="780.0" y="105.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y5</text>
+<circle cx="910" cy="95" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="910.0" y="88.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S6</text>
+<text x="910.0" y="105.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y6</text>
+<circle cx="780" cy="265" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="780.0" y="258.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">S4</text>
+<text x="780.0" y="275.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">y4</text>
+<circle cx="910" cy="265" r="32" fill="#FCFCFB" stroke="#898781" stroke-width="1.5"/>
+<text x="910.0" y="258.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" fill="#52514E">swait</text>
+<text x="910.0" y="275.0" text-anchor="middle" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" fill="#52514E">–</text>
+</svg>

@@ -71,6 +71,10 @@ The original async implementation is kept in the repo for reference, since worki
 
 ### FSM states
 
+Moore state diagram: each state shows its name and its output; edge labels are the input conditions (`'` = not).
+
+![fsm_state_diagram.svg](fsm_state_diagram.svg)
+
 | State | Output | Action | Next state |
 |---|---|---|---|
 | `S0` | – | Reset / start | `S1` |
@@ -107,7 +111,6 @@ The FSM/Datapath redesign is complete and passes the simulation testbench: a cor
 
 Next steps:
 
-- **FSM state diagram** as a figure in the repo
 - **Unlocked state:** at the moment `sysout` is a short pulse; a dedicated state would hold it until relocked
 - **FPGA synthesis** on a Spartan board, with a resource utilization and timing report
 - **Negative test cases** in the testbench (wrong codes, held keys)
@@ -190,6 +193,7 @@ Security-System/
 ├── .gitignore
 ├── secsys.v                            ← FSM/Datapath design + testbench
 ├── secsys(old_async_design).v          ← original async design (reference)
+├── fsm_state_diagram.svg               ← Moore FSM state diagram
 ├── code_lock_schematic_v8.svg          ← FSM-based datapath schematic
 ├── security_code_logic_circuit.svg     ← code selection logic
 └── security_system_block_diagram.svg   ← original async block diagram
